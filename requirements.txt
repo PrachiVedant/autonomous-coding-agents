@@ -1,1 +1,7 @@
 openai>=1.0.0
+langchain
+langchain_community
+langgraph
+python-dotenv
+langchain-openai
+pydantic
