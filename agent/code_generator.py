@@ -1,8 +1,9 @@
 import json
-from llm.gateway import client
+from llm.gateway import get_client
 
 
 def generate_fix(issue, plan, file_contents):
+    client = get_client()
     """Generate the complete file changes for the issue fix."""
     file_context = "\n\n".join(
         [f"---{path}---\n{content}" for path, content in file_contents.items()]

@@ -1,8 +1,9 @@
 import json
-from llm.gateway import client
+from llm.gateway import get_client
 
 
 def plan_issue(issue, structure):
+    client = get_client()
     """Create a plan for fixing the issue."""
     messages = [
         {

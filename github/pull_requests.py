@@ -1,24 +1,23 @@
-import subprocess
-from repository.commands import run_command
+from guardrails.before_agent import CodingSafetyFilter
+
+MAX_CHANGED_FILES = 5
 
 
-def create_branch_and_pr(repo, issue_number, branch_name, title, body):
-    """Create a branch, commit changes, and open a PR"""
-    commands = [
-        f"git checkout -b {branch_name}",
-        "git add -A",
-        f'git commit -m "fix: {title}"',
-        f"git push origin {branch_name}",
-    ]
+def is_sensitive_file(path: str) -> bool:
+    normalized = path.lower()
+    return any(pattern.lower() in normalized for pattern in CodingSafetyFilter.SENSITIVE_FILE_PATTERNS)
 
-    for cmd in commands:
-        result = run_command(cmd)
-        print(f"  {cmd}: {result}")
 
-    pr_result = subprocess.run(
-        ["gh", "pr", "create", "--repo", repo,
-         "--title", title, "--body", body,
-         "--head", branch_name],
-        capture_output=True, text=True
-    )
-    return pr_result.stdout
+def validate_proposed_changes(changes: list[dict[str, str]]) -> None:
+    if len(changes) > MAX_CHANGED_FILES:
+        raise RuntimeError(
+            f"Refusing to apply {len(changes)} changed files. "
+            f"Change limit is {MAX_CHANGED_FILES} files."
+        )
+
+    sensitive_files = [change["path"] for change in changes if is_sensitive_file(change["path"])]
+    if sensitive_files:
+        raise RuntimeError(
+            "Refusing to apply changes to sensitive files: "
+            + ", ".join(sensitive_files)
+        )

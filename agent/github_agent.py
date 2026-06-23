@@ -1,16 +1,21 @@
 from github.issues import get_issue
-from github.pull_requests import create_branch_and_pr
+from github.git_operations import git_operations
+from github.pull_requests import validate_proposed_changes, is_sensitive_file
 from repository.reader import get_repo_structure, read_file
 from repository.writer import write_file
+from repository.commands import run_command
 from agent.planner import plan_issue
 from agent.code_generator import generate_fix
 
 
 def solve_issue(repo, issue_number):
     """Orchestrate the issue-fix workflow."""
+    thread_id = f"{repo.replace('/', '-')}-issue-{issue_number}"
+
     print(f"\n1. Fetching issue #{issue_number}...")
     issue = get_issue(repo, issue_number)
     print(f"   Title: {issue['title']}")
+    print(f"   Thread ID: {thread_id}")
 
     print("\n2. Reading repo structure...")
     structure = get_repo_structure()
@@ -30,18 +35,56 @@ def solve_issue(repo, issue_number):
     print("\n5. Generating the fix...")
     fix = generate_fix(issue, plan, file_content)
 
+    try:
+        validate_proposed_changes(fix['changes'])
+    except RuntimeError as error:
+        print(f"Aborting: {error}")
+        return
+
     print("\n6. Applying changes")
     for change in fix['changes']:
         write_file(change['path'], change['content'])
         print(f"Updated : {change['path']}")
 
-    branch_name = f"fix/issue-{issue_number}"
+    branch_name = thread_id
     print(f"\n7. Creating branch '{branch_name}' and opening PR...")
 
-    pr_url = create_branch_and_pr(
-        repo, issue_number, branch_name,
-        f"fix-issue{issue_number}:{issue['title']}",
-        fix['pr_description']
+    checkout_result = run_command(f"git checkout -b {branch_name}")
+    print(f"  git checkout -b {branch_name}: {checkout_result}")
+
+    sensitive_files = [
+        change['path']
+        for change in fix['changes']
+        if is_sensitive_file(change['path'])
+    ]
+
+    commit_result = git_operations.invoke(
+        {
+            "action": "commit",
+            "commit_message": f"fix: {issue['title']}",
+            "num_files_changed": len(fix['changes']),
+            "sensitive_files": sensitive_files,
+        }
     )
-    print(f"\n   PR created: {pr_url}")
+    print(f"  commit: {commit_result}")
+
+    push_result = git_operations.invoke(
+        {
+            "action": "push",
+            "branch_name": branch_name,
+        }
+    )
+    print(f"  push: {push_result}")
+
+    pr_result = git_operations.invoke(
+        {
+            "action": "create_pr",
+            "branch_name": branch_name,
+            "repo": repo,
+            "pr_title": thread_id,
+            "pr_body": fix['pr_description'],
+        }
+    )
+    print(f"  create_pr: {pr_result}")
+
     print("\nDone.")
