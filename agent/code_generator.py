@@ -1,9 +1,9 @@
 import json
-from llm.gateway import get_client
+from llm.gateway import LLMGateway
 
 
 def generate_fix(issue, plan, file_contents):
-    client = get_client()
+    gateway = LLMGateway()
     """Generate the complete file changes for the issue fix."""
     file_context = "\n\n".join(
         [f"---{path}---\n{content}" for path, content in file_contents.items()]
@@ -33,12 +33,12 @@ Respond with JSON:
         }
     ]
 
-    response = client.messages.create(
+    prompt = messages[0]["content"]
+    fix_text = gateway.generate(
+        prompt=prompt,
         model="gpt-4o",
         max_tokens=4000,
-        messages=messages
     )
-    fix_text = response.content[0].text
     return _extract_json(fix_text)
 
 

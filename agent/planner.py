@@ -1,9 +1,9 @@
 import json
-from llm.gateway import get_client
+from llm.gateway import LLMGateway
 
 
 def plan_issue(issue, structure):
-    client = get_client()
+    gateway = LLMGateway()
     """Create a plan for fixing the issue."""
     messages = [
         {
@@ -30,12 +30,12 @@ Respond with JSON:
         }
     ]
 
-    response = client.messages.create(
+    prompt = messages[0]["content"]
+    plan_text = gateway.generate(
+        prompt=prompt,
         model="gpt-4o",
         max_tokens=2000,
-        messages=messages
     )
-    plan_text = response.content[0].text
     return _extract_json(plan_text)
 
 
