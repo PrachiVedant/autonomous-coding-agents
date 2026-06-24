@@ -3,8 +3,8 @@ from llm.gateway import LLMGateway
 
 
 def generate_fix(issue, plan, file_contents):
-    gateway = LLMGateway()
     """Generate the complete file changes for the issue fix."""
+    gateway = LLMGateway()
     file_context = "\n\n".join(
         [f"---{path}---\n{content}" for path, content in file_contents.items()]
     )

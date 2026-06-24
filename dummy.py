@@ -18,7 +18,7 @@
 # │   └── gemini_provider.py
 # │
 # ├── evals/
-# │   ├── evaluator.py
+# │   ├── evaluator.py, correctnees.py,relevance.py
 # │   └── datasets/
 # │
 # ├── github/

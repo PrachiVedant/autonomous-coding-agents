@@ -3,8 +3,8 @@ from llm.gateway import LLMGateway
 
 
 def plan_issue(issue, structure):
-    gateway = LLMGateway()
     """Create a plan for fixing the issue."""
+    gateway = LLMGateway()
     messages = [
         {
             "role": "user",
